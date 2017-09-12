@@ -13,6 +13,7 @@
 		6B17D1971F67B2E80033EB2C /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6B17D1951F67B2E80033EB2C /* Main.storyboard */; };
 		6B17D1991F67B2E80033EB2C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6B17D1981F67B2E80033EB2C /* Assets.xcassets */; };
 		6B17D19C1F67B2E80033EB2C /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6B17D19A1F67B2E80033EB2C /* LaunchScreen.storyboard */; };
+		6BBD42241F67DA3000269312 /* aa.json in Resources */ = {isa = PBXBuildFile; fileRef = 6BBD42231F67DA3000269312 /* aa.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -26,6 +27,7 @@
 		6B17D1981F67B2E80033EB2C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6B17D19B1F67B2E80033EB2C /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		6B17D19D1F67B2E80033EB2C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		6BBD42231F67DA3000269312 /* aa.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = aa.json; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -62,6 +64,7 @@
 				6B17D1901F67B2E80033EB2C /* AppDelegate.m */,
 				6B17D1921F67B2E80033EB2C /* ViewController.h */,
 				6B17D1931F67B2E80033EB2C /* ViewController.m */,
+				6BBD42231F67DA3000269312 /* aa.json */,
 				6B17D1951F67B2E80033EB2C /* Main.storyboard */,
 				6B17D1981F67B2E80033EB2C /* Assets.xcassets */,
 				6B17D19A1F67B2E80033EB2C /* LaunchScreen.storyboard */,
@@ -138,6 +141,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				6B17D19C1F67B2E80033EB2C /* LaunchScreen.storyboard in Resources */,
+				6BBD42241F67DA3000269312 /* aa.json in Resources */,
 				6B17D1991F67B2E80033EB2C /* Assets.xcassets in Resources */,
 				6B17D1971F67B2E80033EB2C /* Main.storyboard in Resources */,
 			);
@@ -311,6 +315,7 @@
 				6B17D1A21F67B2E80033EB2C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
