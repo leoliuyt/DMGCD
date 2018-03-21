@@ -63,3 +63,5 @@ fastlane/test_output
 iOSInjectionProject/
 *.xcworkspacedata
 contents.xcworkspacedata
+/.DS_Store
+/DMGCD/.DS_Store

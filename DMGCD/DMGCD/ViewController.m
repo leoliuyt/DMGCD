@@ -7,6 +7,7 @@
 //
 
 #import "ViewController.h"
+#import "Person.h"
 
 static NSInteger kMaxIndex = 50;
 
@@ -30,7 +31,8 @@ static NSInteger kPerValue = 1;
 //    [self demo1];
 //    [self demo2];
 //    [self demo4];
-    [self demo5];
+//    [self demo9];
+    [self demo11];
 }
 
 - (void)didReceiveMemoryWarning {
@@ -226,5 +228,198 @@ dispatch_source_t WriteDataToFile(const char* filename)
     dispatch_source_set_cancel_handler(writeSource, ^{close(fd);});
     dispatch_resume(writeSource);
     return (writeSource);
+}
+
+
+//dispatch_apply
+/*
+ 如果每次迭代执行的任务与其它迭代独立无关，而且循环迭代执行顺序也无关紧要的话，你可以调用 dispatch_apply 或 dispatch_apply_f 函数来替换循环。这两个函数为每次循环迭代将指定的 block 或函数提交到 queue。当 dispatch 到并发 queue 时，就有可能同时执行多个循环迭代。
+ 
+ 调用 dispatch_apply 或 dispatch_apply_f 时你虽然可以指定串行或并发 queue。 并发 queue 允许同时执行多个循环迭代，而串行 queue 就没太大必要使用了。
+ 
+ 需要注意：这两个函数会阻塞当前线程，而且和普通 for 循环一样，dispatch_apply 和 dispatch_apply_f 函数也是在所有迭代完成之后才会返回。所以如果你传递的参数是串行 queue，而且正是执行当前代码的 Queue, 就会产生死锁。主线程中调用这两个函数必须小心，可能会阻止事件处理循环并无法响应用户事件。
+ */
+
+/*! dispatch_apply函数说明
+ *
+ *  @brief  dispatch_apply函数是dispatch_sync函数和Dispatch Group的关联API
+ *         该函数按指定的次数将指定的Block追加到指定的Dispatch Queue中,并等到全部的处理执行结束
+ */
+- (void)demo6
+{
+    dispatch_queue_t q = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    dispatch_apply(10, q, ^(size_t i) {
+        NSLog(@"iterations task == %tu",i);
+    });
+    
+    NSLog(@"finish");
+}
+
+
+// 当 queue 的引用计数到达 0 时执行清理函数
+void myFinalizerFunction(void *context) {
+    char *theData = (char *)context;
+    printf("myFinalizerFunction - data = %s\n", theData);
+    
+    // 具体清理细节可以另写一个函数
+    myCleanUpDataContextFunction(theData);
+}
+
+// 具体清理细节
+void myCleanUpDataContextFunction(char *data) {
+    printf("myCleanUpDataContextFunction - data = %s\n", data);
+}
+
+// 具体初始化细节
+void myInitializeDataContextFunction(char **data) {
+    *data = "Lision";
+    printf("myInitializeDataContextFunction - data = %s\n", *data);
+}
+
+// 自定义创建队列函数
+dispatch_queue_t createMyQueue() {
+    char *data = (char *) malloc(sizeof(char));
+    myInitializeDataContextFunction(&data);
+    
+    // 创建队列并为其设置上下文
+    dispatch_queue_t serialQueue = dispatch_queue_create("test.Lision.CriticalTaskQueue", NULL);
+    if (serialQueue) {
+        dispatch_set_context(serialQueue, data);
+        dispatch_set_finalizer_f(serialQueue, &myFinalizerFunction);
+    }
+    return serialQueue;
+}
+
+/*
+ dispatch_set_finalizer_f 函数为 queue 指定一个清理函数
+ */
+- (void)demo7
+{
+    // 通过自定义函数创建队列
+    dispatch_queue_t queue = createMyQueue();
+    
+    // 异步执行队列，并在队列中修改上下文
+    dispatch_async(queue, ^{
+        char *name = dispatch_get_context(queue);
+        NSLog(@"name=====%s",name);
+        name = "LiXin";
+        dispatch_set_context(queue, name);
+    });
+}
+
+/*
+ Dispatch group 用来阻塞一个线程，直到一个或多个任务完成执行。
+ */
+- (void)demo8
+{
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    dispatch_group_t group = dispatch_group_create();
+    // 把 queue 加入到 group
+    dispatch_group_async(group, queue, ^{
+        // 一些异步操作任务
+        NSLog(@"group task one");
+    });
+    
+    dispatch_group_async(group, queue, ^{
+        NSLog(@"group task two");
+    });
+    
+    // code 你可以在这里写代码做一些不必等待 group 内任务的操作
+    
+    // 当你在 group 的任务没有完成的情况下不能做更多的事时，阻塞当前线程等待 group 完工
+//    dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
+//    NSLog(@"finish");
+    
+    dispatch_group_notify(group, queue, ^{
+        NSLog(@"notify group finish");
+    });
+}
+/*
+ 并发编程中不可避免的碰到资源争夺问题，解决这类问题有三种方法：
+ 
+ 加锁 @synchronized(//要锁对象){相关操作}
+ 使用异步执行串行队列的方式，这样可以控制对象的操作顺序
+ 上面两种方法的确已经足够好了，但还不是最优的，它只可以实现单读、单写。
+ 整体来看，我们最终要解决的问题是，在写的过程中不能被读，以免数据不对，但是读与读之间并没有任何的冲突
+
+ dispatch_barrier ，没错使用它也可以做到这一点
+ */
+- (void)demo9
+{
+    Person *person = [[Person alloc] init];
+    person.name = @"aaa";
+    dispatch_queue_t q = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    dispatch_async(q, ^{
+        person.name = @"bbb";
+        NSLog(@"set");
+    });
+    
+    dispatch_async(q, ^{
+        NSLog(@"%@",person.name);
+        NSLog(@"%@",person.name);
+        NSLog(@"-----");
+    });
+    /* 会出现这种情况
+     2017-09-24 17:48:27.552048+0800 DMGCD[35984:7956077] -----
+     2017-09-24 17:48:27.710931+0800 DMGCD[35984:7956037] aaa
+     2017-09-24 17:48:27.711346+0800 DMGCD[35984:7956037] bbb
+     2017-09-24 17:48:27.711560+0800 DMGCD[35984:7956037] -----
+     */
+}
+
+/*
+ dispatch_barrier_sync与dispatch_barrier_async
+ 1、等待在它前面插入队列的任务先执行完
+ 
+ 2、等待他们自己的任务执行完再执行后面的任务
+ 
+ 不同点：
+ 
+ 1、dispatch_barrier_sync将自己的任务插入到队列的时候，需要等待自己的任务结束之后才会继续插入被写在它后面的任务，然后执行它们
+ 
+ 2、dispatch_barrier_async将自己的任务插入到队列之后，不会等待自己的任务结束，它会继续把后面的任务插入到队列，然后等待自己的任务结束后才执行后面任务。
+ */
+- (void)demo10
+{
+    dispatch_queue_t concurrentQueue = dispatch_queue_create("my.concurrent.queue", DISPATCH_QUEUE_CONCURRENT);
+    dispatch_async(concurrentQueue, ^(){
+        sleep(5);
+        NSLog(@"dispatch-1");
+    });
+    dispatch_async(concurrentQueue, ^(){
+        sleep(1);
+        NSLog(@"dispatch-2");
+    });
+    dispatch_barrier_async(concurrentQueue, ^(){
+        NSLog(@"dispatch-barrier");
+    });
+    dispatch_async(concurrentQueue, ^(){
+        NSLog(@"dispatch-3");
+    });
+    dispatch_async(concurrentQueue, ^(){
+        NSLog(@"dispatch-4");
+    });
+}
+
+- (void)demo11
+{
+    dispatch_queue_t concurrentQueue = dispatch_queue_create("my.concurrent.queue", DISPATCH_QUEUE_SERIAL);
+    dispatch_group_t group = dispatch_group_create();
+    
+    for (int i = 0; i < 10; i++) {
+        dispatch_group_enter(group);
+        dispatch_async(concurrentQueue, ^{
+            NSLog(@"task = %tu",i);
+            sleep(i+1);
+            dispatch_group_leave(group);
+        });
+    }
+    
+    NSLog(@"outter");
+    
+    dispatch_group_notify(group, dispatch_get_main_queue(), ^{
+        NSLog(@"finished");
+    });
+    
 }
 @end
