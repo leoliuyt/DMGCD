@@ -32,7 +32,7 @@ static NSInteger kPerValue = 1;
 //    [self demo2];
 //    [self demo4];
 //    [self demo9];
-    [self demo11];
+    [self demo14];
 }
 
 - (void)didReceiveMemoryWarning {
@@ -422,4 +422,191 @@ dispatch_queue_t createMyQueue() {
     });
     
 }
+
+//MARK: dispatch_set_target_queue
+//变更队列的执行优先级
+- (void)demo12
+{
+    //优先级变更的串行队列，初始是默认优先级
+    dispatch_queue_t serialQueue = dispatch_queue_create("com.leoliu.gcd.serial", DISPATCH_QUEUE_SERIAL);
+    
+    //优先级不变的串行队列（参照），初始是默认优先级
+    dispatch_queue_t defaultSerialQueue = dispatch_queue_create("com.leoliu.gcd.defaultserial", DISPATCH_QUEUE_SERIAL);
+    
+    //变更前
+    dispatch_async(serialQueue, ^{
+        NSLog(@"变更前 - 1");
+    });
+    
+    dispatch_async(defaultSerialQueue, ^{
+        NSLog(@"变更前 - 2");
+    });
+    
+    //获取优先级为后台优先级的全局队列
+    dispatch_queue_t globalQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
+    
+    //变更优先级
+    dispatch_set_target_queue(serialQueue, globalQueue);
+    
+    //变更后
+    dispatch_async(serialQueue, ^{
+        NSLog(@"变更后 - 1");
+    });
+    
+    dispatch_async(defaultSerialQueue, ^{
+        NSLog(@"变更后 - 2");
+    });
+    
+    /**
+     结果:
+      变更前 - 2
+      变更前 - 1
+      变更后 - 2
+      变更后 - 1
+     */
+}
+
+- (void)demo13
+{
+    dispatch_queue_t serialQueue1 = dispatch_queue_create("com.leoliu.gcd.serial1", DISPATCH_QUEUE_SERIAL);
+    dispatch_queue_t serialQueue2 = dispatch_queue_create("com.leoliu.gcd.serial2", DISPATCH_QUEUE_SERIAL);
+    dispatch_queue_t serialQueue3 = dispatch_queue_create("com.leoliu.gcd.serial3", DISPATCH_QUEUE_SERIAL);
+    dispatch_queue_t serialQueue4 = dispatch_queue_create("com.leoliu.gcd.serial4", DISPATCH_QUEUE_SERIAL);
+    dispatch_queue_t serialQueue5 = dispatch_queue_create("com.leoliu.gcd.serial5", DISPATCH_QUEUE_SERIAL);
+    
+    dispatch_async(serialQueue1, ^{
+        NSLog(@"变更前 - 1");
+    });
+    dispatch_async(serialQueue2, ^{
+        NSLog(@"变更前 - 2");
+    });
+    dispatch_async(serialQueue3, ^{
+        NSLog(@"变更前 - 3");
+    });
+    dispatch_async(serialQueue4, ^{
+        NSLog(@"变更前 - 4");
+    });
+    dispatch_async(serialQueue5, ^{
+        NSLog(@"变更前 - 5");
+    });
+    
+    
+    sleep(5);
+    
+    dispatch_queue_t targetQueue = dispatch_queue_create("com.leoliu.gcd.target", DISPATCH_QUEUE_SERIAL);
+    dispatch_set_target_queue(serialQueue2, targetQueue);
+    dispatch_set_target_queue(serialQueue1, targetQueue);
+    dispatch_set_target_queue(serialQueue3, targetQueue);
+    dispatch_set_target_queue(serialQueue4, targetQueue);
+    dispatch_set_target_queue(serialQueue5, targetQueue);
+    
+    dispatch_async(serialQueue1, ^{
+        NSLog(@"变更后 - 1");
+    });
+    dispatch_async(serialQueue2, ^{
+        NSLog(@"变更后 - 2");
+    });
+    dispatch_async(serialQueue3, ^{
+        NSLog(@"变更后 - 3");
+    });
+    dispatch_async(serialQueue4, ^{
+        NSLog(@"变更后 - 4");
+    });
+    dispatch_async(serialQueue5, ^{
+        NSLog(@"变更后 - 5");
+    });
+    
+    /**
+     结果：
+      变更前 - 3
+      变更前 - 2
+      变更前 - 4
+      变更前 - 1
+      变更前 - 5
+     
+      变更后 - 1
+      变更后 - 2
+      变更后 - 3
+      变更后 - 4
+      变更后 - 5
+     */
+}
+
+
+- (void)demo14
+{
+    dispatch_queue_t concurrentQueue1 = dispatch_queue_create("com.leoliu.gcd.concurrent1", DISPATCH_QUEUE_CONCURRENT);
+    dispatch_queue_t serialQueue2 = dispatch_queue_create("com.leoliu.gcd.serial2", DISPATCH_QUEUE_SERIAL);
+    dispatch_queue_t serialQueue3 = dispatch_queue_create("com.leoliu.gcd.serial3", DISPATCH_QUEUE_SERIAL);
+    dispatch_queue_t serialQueue4 = dispatch_queue_create("com.leoliu.gcd.serial4", DISPATCH_QUEUE_SERIAL);
+    dispatch_queue_t serialQueue5 = dispatch_queue_create("com.leoliu.gcd.serial5", DISPATCH_QUEUE_SERIAL);
+    
+    dispatch_queue_t targetQueue = dispatch_queue_create("com.leoliu.gcd.target", DISPATCH_QUEUE_SERIAL);
+    dispatch_set_target_queue(concurrentQueue1, targetQueue);
+    dispatch_set_target_queue(serialQueue3, targetQueue);
+    dispatch_set_target_queue(serialQueue2, targetQueue);
+    dispatch_set_target_queue(serialQueue4, targetQueue);
+    dispatch_set_target_queue(serialQueue5, targetQueue);
+    
+    dispatch_async(concurrentQueue1, ^{
+        NSLog(@"变更后 - 1-1");
+    });
+    
+    dispatch_async(concurrentQueue1, ^{
+        NSLog(@"变更后 - 1-3");
+    });
+   
+    dispatch_async(serialQueue2, ^{
+        sleep(2);
+        NSLog(@"变更后 - 2");
+    });
+    dispatch_async(concurrentQueue1, ^{
+        sleep(5);
+        NSLog(@"变更后 - 1-2");
+    });
+    dispatch_async(serialQueue3, ^{
+        NSLog(@"变更后 - 3");
+    });
+    dispatch_async(serialQueue4, ^{
+        NSLog(@"变更后 - 4");
+    });
+    dispatch_async(serialQueue5, ^{
+        NSLog(@"变更后 - 5");
+    });
+    
+   
+    
+    
+    /**
+     结果：
+     变更后 - 1-1
+     变更后 - 1-3
+     变更后 - 2
+     变更后 - 1-2
+     变更后 - 3
+     变更后 - 4
+     变更后 - 5
+     
+     结论：
+     并行队列指定到目标串行队列中后会根据添加顺序执行
+     串行队列指定到目标串行队列中后会根据添加顺序执行
+     */
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 @end
