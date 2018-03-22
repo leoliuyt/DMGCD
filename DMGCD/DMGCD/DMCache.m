@@ -38,9 +38,9 @@
     __block id obj;
     
     // 任意线程都可以'读'
-//    dispatch_sync(_queue, ^{
+    dispatch_sync(_queue, ^{
         obj = [self.cache objectForKey:key];
-//    });
+    });
     
     return obj;
 }
@@ -48,8 +48,8 @@
 - (void)setCacheObject:(id)obj withKey:(id)key
 {
     // 保证同时'写'的的只有一个
-//    dispatch_barrier_async(_queue, ^{
+    dispatch_barrier_async(_queue, ^{
         [self.cache setObject:obj forKey:key];
-//    });
+    });
 }
 @end

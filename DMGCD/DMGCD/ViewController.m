@@ -34,13 +34,7 @@ static NSInteger kPerValue = 1;
 //    [self demo2];
 //    [self demo4];
 //    [self demo9];
-    dispatch_queue_t queue = dispatch_queue_create("aaaa", DISPATCH_QUEUE_SERIAL);
-    dispatch_async(queue, ^{
-        while (1) {
-            printf("a");
-        }
-    });
-    [self dispatch_barrier_1];
+    [self dispatch_semaphore_1];
 }
 
 - (void)didReceiveMemoryWarning {
@@ -64,13 +58,7 @@ static NSInteger kPerValue = 1;
  */
 - (void)dispatch_barrier_1
 {
-//    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
     dispatch_queue_t queue = dispatch_queue_create("com.leoliu.concurrent",DISPATCH_QUEUE_CONCURRENT);
-//    dispatch_async(dispatch_get_main_queue(), ^{
-//        while (1) {
-//            printf("a");
-//        }
-//    });
     
     dispatch_async(queue, ^{
         NSLog(@"1");
@@ -83,7 +71,7 @@ static NSInteger kPerValue = 1;
         NSLog(@"3");
     });
     
-    dispatch_barrier_sync(queue, ^{
+    dispatch_barrier_async(queue, ^{
         NSLog(@"barrier");
         sleep(5);
     });
@@ -138,49 +126,22 @@ static NSInteger kPerValue = 1;
     dispatch_async(q, ^{
         for (int i = 0; i < 100; i++) {
             [[DMCache shared] setCacheObject:[NSString stringWithFormat:@"%tu",i] withKey:[NSString stringWithFormat:@"1-%tu",i]];
-//            NSLog(@"set1 == %tu",i);
         }
     });
     
-//    dispatch_async(q, ^{
-//        for (int i = 0; i < 100; i++) {
-//            [[DMCache shared] setCacheObject:[NSString stringWithFormat:@"%tu",i] withKey:[NSString stringWithFormat:@"2-%tu",i]];
-//            //            NSLog(@"set1 == %tu",i);
-//        }
-//    });
-    
-//    dispatch_async(q, ^{
-//        for (int i = 0; i < 100; i++) {
-//            person.name = [NSString stringWithFormat:@"%tu",i];
-//            NSLog(@"set2 == %tu",i);
-//        }
-//
-//    });
+    dispatch_async(q, ^{
+        for (int i = 0; i < 100; i++) {
+            [[DMCache shared] setCacheObject:[NSString stringWithFormat:@"%tu",i] withKey:[NSString stringWithFormat:@"2-%tu",i]];
+        }
+    });
     
     dispatch_barrier_async(q, ^{
         for (int i = 0; i < 100; i++) {
-//            [[DMCache shared] setCacheObject:[NSString stringWithFormat:@"%tu",i] withKey:[NSString stringWithFormat:@"2-%tu",i]];
             NSString *value1 = [[DMCache shared] cacheWithKey:[NSString stringWithFormat:@"1-%tu",i]];
             NSString *value2 = [[DMCache shared] cacheWithKey:[NSString stringWithFormat:@"2-%tu",i]];
             NSLog(@"key1:%@==%@;key2:%@==%@",[NSString stringWithFormat:@"1-%tu",i],value1,[NSString stringWithFormat:@"2-%tu",i],value2);
         }
     });
-    
-//    dispatch_async(q, ^{
-//        NSLog(@"%@",person.name);
-//        NSLog(@"%@",person.name);
-//        NSLog(@"-----");
-//    });
-    /* 不使用dispatch_barrier时会出现这种情况
-     set == 0
-     aaa
-     set == 1
-     1
-     -----
-     set == 2
-     set == 3
-     set == 4
-     */
 }
 
 /*
@@ -225,7 +186,7 @@ static NSInteger kPerValue = 1;
 /*
  Dispatch group 用来阻塞一个线程，直到一个或多个任务完成执行。
  */
-- (void)demo10
+- (void)dispatch_group_1
 {
     dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
     dispatch_group_t group = dispatch_group_create();
@@ -240,17 +201,17 @@ static NSInteger kPerValue = 1;
     });
     
     // code 你可以在这里写代码做一些不必等待 group 内任务的操作
-    
+    NSLog(@"outer");
     // 当你在 group 的任务没有完成的情况下不能做更多的事时，阻塞当前线程等待 group 完工
-    //    dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
-    //    NSLog(@"finish");
+        dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
+        NSLog(@"finish");
     
-    dispatch_group_notify(group, queue, ^{
-        NSLog(@"notify group finish");
-    });
+//    dispatch_group_notify(group, queue, ^{
+//        NSLog(@"notify group finish");
+//    });
 }
 
-- (void)demo11
+- (void)dispatch_group_2
 {
     dispatch_queue_t concurrentQueue = dispatch_queue_create("my.concurrent.queue", DISPATCH_QUEUE_SERIAL);
     dispatch_group_t group = dispatch_group_create();
@@ -440,15 +401,57 @@ static NSInteger kPerValue = 1;
      结论：
      并行队列指定到目标串行队列中后会根据添加顺序执行
      串行队列指定到目标串行队列中后会根据添加顺序执行
+     目标队列是什么队列 执行就是按什么队列执行
      */
 }
 
+//MARK: dispatch apply
 
+/**
+ dispatch_apply函数是dispatch_sync函数和Dispatch Group的关联API,该函数按指定的次数将指定的Block追加到指定的Dispatch Queue中,并等到全部的处理执行结束
+ */
+- (void)dispatch_apply_1
+{
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    
+    NSArray *arr = @[@"a",@"b",@"c",@"d",@"e",@"f",@"g",@"h",@"i",@"j"];
+    dispatch_async(queue, ^{
+        dispatch_apply(arr.count, queue, ^(size_t i) {
+            NSLog(@"%@",[arr objectAtIndex:i]);
+        });
+        NSLog(@"--over");
+    });
+    NSLog(@"over");
+}
 
-
-
-
-
+//MARK: dispatch semaphore
+//https://blog.csdn.net/LXL_815520/article/details/60144640
+/**
+ 关于信号量，一般可以用停车来比喻
+ 停车场剩余4个车位，那么即使同时来了四辆车也能停的下。如果此时来了五辆车，那么就有一辆需要等待。
+ 信号量的值就相当于剩余车位的数目，dispatch_semaphore_wait函数就相当于来了一辆车，dispatch_semaphore_signal
+ 就相当于走了一辆车。停车位的剩余数目在初始化的时候就已经指明了（dispatch_semaphore_create（long value）），
+ 调用一次dispatch_semaphore_signal，剩余的车位就增加一个；调用一次dispatch_semaphore_wait剩余车位就减少一个；
+ 当剩余车位为0时，再来车（即调用dispatch_semaphore_wait）就只能等待。有可能同时有几辆车等待一个停车位。有些车主
+ 没有耐心，给自己设定了一段等待时间，这段时间内等不到停车位就走了，如果等到了就开进去停车。而有些车主就像把车停在这，
+ 所以就一直等下去。
+ */
+- (void)dispatch_semaphore_1
+{
+    dispatch_group_t group = dispatch_group_create();
+    dispatch_semaphore_t semaphore = dispatch_semaphore_create(10);
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    for (int i = 0; i < 100; i++)
+    {
+        dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+        dispatch_group_async(group, queue, ^{
+            NSLog(@"thread:%@==%i",[NSThread currentThread].name,i);
+            sleep(2);
+            dispatch_semaphore_signal(semaphore);
+        });
+    }
+    dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
+}
 
 
 - (void)demo1
