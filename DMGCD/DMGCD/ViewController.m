@@ -438,19 +438,32 @@ static NSInteger kPerValue = 1;
  */
 - (void)dispatch_semaphore_1
 {
-    dispatch_group_t group = dispatch_group_create();
-    dispatch_semaphore_t semaphore = dispatch_semaphore_create(10);
+//    dispatch_group_t group = dispatch_group_create();
+//    dispatch_semaphore_t semaphore = dispatch_semaphore_create(10);
     dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-    for (int i = 0; i < 100; i++)
-    {
-        dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
-        dispatch_group_async(group, queue, ^{
-            NSLog(@"thread:%@==%i",[NSThread currentThread].name,i);
-            sleep(2);
-            dispatch_semaphore_signal(semaphore);
-        });
-    }
-    dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
+    
+//    for (int i = 0; i < 100; i++)
+//    {
+//        dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+//        dispatch_group_async(group, queue, ^{
+//            NSLog(@"thread:%@==%i",[NSThread currentThread].name,i);
+//            sleep(2);
+//            dispatch_semaphore_signal(semaphore);
+//        });
+//    }
+//    dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
+    
+    dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+
+    dispatch_async(queue, ^{
+        NSLog(@"请求中……");
+        sleep(5);
+        NSLog(@"请求回调中……");
+        dispatch_semaphore_signal(semaphore);
+    });
+    
+    dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+    NSLog(@"over");
 }
 
 
