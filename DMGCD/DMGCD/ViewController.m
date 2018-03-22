@@ -8,6 +8,7 @@
 
 #import "ViewController.h"
 #import "Person.h"
+#import "DMCache.h"
 
 static NSInteger kMaxIndex = 50;
 
@@ -23,6 +24,7 @@ static NSInteger kPerValue = 1;
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    
     // Do any additional setup after loading the view, typically from a nib.
 }
 
@@ -32,13 +34,421 @@ static NSInteger kPerValue = 1;
 //    [self demo2];
 //    [self demo4];
 //    [self demo9];
-    [self demo14];
+    dispatch_queue_t queue = dispatch_queue_create("aaaa", DISPATCH_QUEUE_SERIAL);
+    dispatch_async(queue, ^{
+        while (1) {
+            printf("a");
+        }
+    });
+    [self dispatch_barrier_1];
 }
 
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.
 }
+
+
+//MARK: dispatch barrier
+
+/**
+ dispatch_barrier_async一般叫做“栅栏函数”，它就好像栅栏一样可以将多个操作分隔开，在它前面追加的操作先执行，在它后面追加的操作后执行。
+ 栅栏函数也可以执行队列上的操作(参数列表中有queue和block)，也有对应的 dispatch_barrier_sync 函数。
+ 
+ 注意：The queue you specify should be a concurrent queue that you create yourself using the dispatch_queue_create function. If the queue you pass to this function is a serial queue or one of the global concurrent queues, this function behaves like the dispatch_async function.
+ dispatch_barrier_async函数中传入的参数队列必须是由 dispatch_queue_create 方法创建的队列，
+ 如果参数传入的队列是 dispatch_get_global_queue 或者是 串行队列，那么dispatch_barrier_async相当于dispatch_async。
+ 对于dispatch_barrier_sync也是同理。
+ 应用：
+ 我们可以利用 dispatch_barrier 的特性实现读写安全的模型.
+ */
+- (void)dispatch_barrier_1
+{
+//    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    dispatch_queue_t queue = dispatch_queue_create("com.leoliu.concurrent",DISPATCH_QUEUE_CONCURRENT);
+//    dispatch_async(dispatch_get_main_queue(), ^{
+//        while (1) {
+//            printf("a");
+//        }
+//    });
+    
+    dispatch_async(queue, ^{
+        NSLog(@"1");
+    });
+    dispatch_async(queue, ^{
+        sleep(5);
+        NSLog(@"2");
+    });
+    dispatch_async(queue, ^{
+        NSLog(@"3");
+    });
+    
+    dispatch_barrier_sync(queue, ^{
+        NSLog(@"barrier");
+        sleep(5);
+    });
+    
+    dispatch_async(queue, ^{
+        sleep(1);
+        NSLog(@"4");
+    });
+    dispatch_async(queue, ^{
+        sleep(2);
+        NSLog(@"5");
+    });
+    dispatch_async(queue, ^{
+        NSLog(@"6");
+    });
+    dispatch_async(queue, ^{
+        NSLog(@"7");
+    });
+    
+    
+    
+    NSLog(@"over");
+    /**
+     结果：
+     1
+     3
+     2
+     barrier
+     6
+     4
+     7
+     5
+     结论：
+     barrier：之前的执行完成之后 才会执行barrier中的代码，barrier中的代码执行完后才会执行后面的代码
+     barrier函数之前和之后的操作执行顺序都不固定
+     */
+}
+
+/*
+ 并发编程中不可避免的碰到资源争夺问题，解决这类问题有三种方法：
+ 
+ 加锁 @synchronized(//要锁对象){相关操作}
+ 使用异步执行串行队列的方式，这样可以控制对象的操作顺序
+ 上面两种方法的确已经足够好了，但还不是最优的，它只可以实现单读、单写。
+ 整体来看，我们最终要解决的问题是，在写的过程中不能被读，以免数据不对，但是读与读之间并没有任何的冲突
+ 
+ dispatch_barrier 实现读写安全的模型
+ */
+- (void)dispatch_barrier_2
+{
+    dispatch_queue_t q = dispatch_queue_create("com.queue.aaa", DISPATCH_QUEUE_CONCURRENT);
+    dispatch_async(q, ^{
+        for (int i = 0; i < 100; i++) {
+            [[DMCache shared] setCacheObject:[NSString stringWithFormat:@"%tu",i] withKey:[NSString stringWithFormat:@"1-%tu",i]];
+//            NSLog(@"set1 == %tu",i);
+        }
+    });
+    
+//    dispatch_async(q, ^{
+//        for (int i = 0; i < 100; i++) {
+//            [[DMCache shared] setCacheObject:[NSString stringWithFormat:@"%tu",i] withKey:[NSString stringWithFormat:@"2-%tu",i]];
+//            //            NSLog(@"set1 == %tu",i);
+//        }
+//    });
+    
+//    dispatch_async(q, ^{
+//        for (int i = 0; i < 100; i++) {
+//            person.name = [NSString stringWithFormat:@"%tu",i];
+//            NSLog(@"set2 == %tu",i);
+//        }
+//
+//    });
+    
+    dispatch_barrier_async(q, ^{
+        for (int i = 0; i < 100; i++) {
+//            [[DMCache shared] setCacheObject:[NSString stringWithFormat:@"%tu",i] withKey:[NSString stringWithFormat:@"2-%tu",i]];
+            NSString *value1 = [[DMCache shared] cacheWithKey:[NSString stringWithFormat:@"1-%tu",i]];
+            NSString *value2 = [[DMCache shared] cacheWithKey:[NSString stringWithFormat:@"2-%tu",i]];
+            NSLog(@"key1:%@==%@;key2:%@==%@",[NSString stringWithFormat:@"1-%tu",i],value1,[NSString stringWithFormat:@"2-%tu",i],value2);
+        }
+    });
+    
+//    dispatch_async(q, ^{
+//        NSLog(@"%@",person.name);
+//        NSLog(@"%@",person.name);
+//        NSLog(@"-----");
+//    });
+    /* 不使用dispatch_barrier时会出现这种情况
+     set == 0
+     aaa
+     set == 1
+     1
+     -----
+     set == 2
+     set == 3
+     set == 4
+     */
+}
+
+/*
+ dispatch_barrier_sync与dispatch_barrier_async
+ 1、等待在它前面插入队列的任务先执行完
+ 
+ 2、等待他们自己的任务执行完再执行后面的任务
+ 
+ 不同点：
+ 
+ 1、dispatch_barrier_sync将自己的任务插入到队列的时候，需要等待自己的任务结束之后才会继续插入被写在它后面的任务，然后执行它们
+ 
+ 2、dispatch_barrier_async将自己的任务插入到队列之后，不会等待自己的任务结束，它会继续把后面的任务插入到队列，然后等待自己的任务结束后才执行后面任务。
+ */
+- (void)dispatch_barrier_3
+{
+    dispatch_queue_t concurrentQueue = dispatch_queue_create("my.concurrent.queue", DISPATCH_QUEUE_CONCURRENT);
+    dispatch_async(concurrentQueue, ^(){
+        sleep(5);
+        NSLog(@"dispatch-1");
+    });
+    dispatch_async(concurrentQueue, ^(){
+        sleep(1);
+        NSLog(@"dispatch-2");
+    });
+//    dispatch_barrier_async(concurrentQueue, ^(){
+//        NSLog(@"dispatch-barrier");
+//    });
+    dispatch_barrier_sync(concurrentQueue, ^(){
+        NSLog(@"dispatch-barrier");
+    });
+    dispatch_async(concurrentQueue, ^(){
+        NSLog(@"dispatch-3");
+    });
+    dispatch_async(concurrentQueue, ^(){
+        NSLog(@"dispatch-4");
+    });
+}
+
+
+//MARK: dispatch group
+/*
+ Dispatch group 用来阻塞一个线程，直到一个或多个任务完成执行。
+ */
+- (void)demo10
+{
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    dispatch_group_t group = dispatch_group_create();
+    // 把 queue 加入到 group
+    dispatch_group_async(group, queue, ^{
+        // 一些异步操作任务
+        NSLog(@"group task one");
+    });
+    
+    dispatch_group_async(group, queue, ^{
+        NSLog(@"group task two");
+    });
+    
+    // code 你可以在这里写代码做一些不必等待 group 内任务的操作
+    
+    // 当你在 group 的任务没有完成的情况下不能做更多的事时，阻塞当前线程等待 group 完工
+    //    dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
+    //    NSLog(@"finish");
+    
+    dispatch_group_notify(group, queue, ^{
+        NSLog(@"notify group finish");
+    });
+}
+
+- (void)demo11
+{
+    dispatch_queue_t concurrentQueue = dispatch_queue_create("my.concurrent.queue", DISPATCH_QUEUE_SERIAL);
+    dispatch_group_t group = dispatch_group_create();
+    
+    for (int i = 0; i < 10; i++) {
+        dispatch_group_enter(group);
+        dispatch_async(concurrentQueue, ^{
+            NSLog(@"task = %tu",i);
+            sleep(i+1);
+            dispatch_group_leave(group);
+        });
+    }
+    
+    NSLog(@"outter");
+    
+    dispatch_group_notify(group, dispatch_get_main_queue(), ^{
+        NSLog(@"finished");
+    });
+    
+}
+
+//MARK: dispatch_set_target_queue
+//变更队列的执行优先级
+- (void)dispatch_target_1
+{
+    //优先级变更的串行队列，初始是默认优先级
+    dispatch_queue_t serialQueue = dispatch_queue_create("com.leoliu.gcd.serial", DISPATCH_QUEUE_SERIAL);
+    
+    //优先级不变的串行队列（参照），初始是默认优先级
+    dispatch_queue_t defaultSerialQueue = dispatch_queue_create("com.leoliu.gcd.defaultserial", DISPATCH_QUEUE_SERIAL);
+    
+    //变更前
+    dispatch_async(serialQueue, ^{
+        NSLog(@"变更前 - 1");
+    });
+    
+    dispatch_async(defaultSerialQueue, ^{
+        NSLog(@"变更前 - 2");
+    });
+    
+    //获取优先级为后台优先级的全局队列
+    dispatch_queue_t globalQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
+    
+    //变更优先级
+    dispatch_set_target_queue(serialQueue, globalQueue);
+    
+    //变更后
+    dispatch_async(serialQueue, ^{
+        NSLog(@"变更后 - 1");
+    });
+    
+    dispatch_async(defaultSerialQueue, ^{
+        NSLog(@"变更后 - 2");
+    });
+    
+    /**
+     结果:
+      变更前 - 2
+      变更前 - 1
+      变更后 - 2
+      变更后 - 1
+     */
+}
+
+- (void)dispatch_target_2
+{
+    dispatch_queue_t serialQueue1 = dispatch_queue_create("com.leoliu.gcd.serial1", DISPATCH_QUEUE_SERIAL);
+    dispatch_queue_t serialQueue2 = dispatch_queue_create("com.leoliu.gcd.serial2", DISPATCH_QUEUE_SERIAL);
+    dispatch_queue_t serialQueue3 = dispatch_queue_create("com.leoliu.gcd.serial3", DISPATCH_QUEUE_SERIAL);
+    dispatch_queue_t serialQueue4 = dispatch_queue_create("com.leoliu.gcd.serial4", DISPATCH_QUEUE_SERIAL);
+    dispatch_queue_t serialQueue5 = dispatch_queue_create("com.leoliu.gcd.serial5", DISPATCH_QUEUE_SERIAL);
+    
+    dispatch_async(serialQueue1, ^{
+        NSLog(@"变更前 - 1");
+    });
+    dispatch_async(serialQueue2, ^{
+        NSLog(@"变更前 - 2");
+    });
+    dispatch_async(serialQueue3, ^{
+        NSLog(@"变更前 - 3");
+    });
+    dispatch_async(serialQueue4, ^{
+        NSLog(@"变更前 - 4");
+    });
+    dispatch_async(serialQueue5, ^{
+        NSLog(@"变更前 - 5");
+    });
+    
+    
+    sleep(5);
+    
+    dispatch_queue_t targetQueue = dispatch_queue_create("com.leoliu.gcd.target", DISPATCH_QUEUE_SERIAL);
+    dispatch_set_target_queue(serialQueue2, targetQueue);
+    dispatch_set_target_queue(serialQueue1, targetQueue);
+    dispatch_set_target_queue(serialQueue3, targetQueue);
+    dispatch_set_target_queue(serialQueue4, targetQueue);
+    dispatch_set_target_queue(serialQueue5, targetQueue);
+    
+    dispatch_async(serialQueue1, ^{
+        NSLog(@"变更后 - 1");
+    });
+    dispatch_async(serialQueue2, ^{
+        NSLog(@"变更后 - 2");
+    });
+    dispatch_async(serialQueue3, ^{
+        NSLog(@"变更后 - 3");
+    });
+    dispatch_async(serialQueue4, ^{
+        NSLog(@"变更后 - 4");
+    });
+    dispatch_async(serialQueue5, ^{
+        NSLog(@"变更后 - 5");
+    });
+    
+    /**
+     结果：
+      变更前 - 3
+      变更前 - 2
+      变更前 - 4
+      变更前 - 1
+      变更前 - 5
+     
+      变更后 - 1
+      变更后 - 2
+      变更后 - 3
+      变更后 - 4
+      变更后 - 5
+     */
+}
+
+
+- (void)dispatch_target_3
+{
+    dispatch_queue_t concurrentQueue1 = dispatch_queue_create("com.leoliu.gcd.concurrent1", DISPATCH_QUEUE_CONCURRENT);
+    dispatch_queue_t serialQueue2 = dispatch_queue_create("com.leoliu.gcd.serial2", DISPATCH_QUEUE_SERIAL);
+    dispatch_queue_t serialQueue3 = dispatch_queue_create("com.leoliu.gcd.serial3", DISPATCH_QUEUE_SERIAL);
+    dispatch_queue_t serialQueue4 = dispatch_queue_create("com.leoliu.gcd.serial4", DISPATCH_QUEUE_SERIAL);
+    dispatch_queue_t serialQueue5 = dispatch_queue_create("com.leoliu.gcd.serial5", DISPATCH_QUEUE_SERIAL);
+    
+    dispatch_queue_t targetQueue = dispatch_queue_create("com.leoliu.gcd.target", DISPATCH_QUEUE_CONCURRENT);
+    dispatch_set_target_queue(concurrentQueue1, targetQueue);
+    dispatch_set_target_queue(serialQueue3, targetQueue);
+    dispatch_set_target_queue(serialQueue2, targetQueue);
+    dispatch_set_target_queue(serialQueue4, targetQueue);
+    dispatch_set_target_queue(serialQueue5, targetQueue);
+    
+    dispatch_async(concurrentQueue1, ^{
+        NSLog(@"变更后 - 1-1");
+        sleep(5);
+    });
+    
+    dispatch_async(concurrentQueue1, ^{
+        NSLog(@"变更后 - 1-3");
+    });
+   
+    dispatch_async(serialQueue2, ^{
+        sleep(2);
+        NSLog(@"变更后 - 2");
+    });
+    dispatch_async(concurrentQueue1, ^{
+        sleep(5);
+        NSLog(@"变更后 - 1-2");
+    });
+    dispatch_async(serialQueue3, ^{
+        NSLog(@"变更后 - 3");
+    });
+    dispatch_async(serialQueue4, ^{
+        NSLog(@"变更后 - 4");
+    });
+    dispatch_async(serialQueue5, ^{
+        NSLog(@"变更后 - 5");
+    });
+    
+   
+    
+    
+    /**
+     结果：
+     变更后 - 1-1
+     变更后 - 1-3
+     变更后 - 2
+     变更后 - 1-2
+     变更后 - 3
+     变更后 - 4
+     变更后 - 5
+     
+     结论：
+     并行队列指定到目标串行队列中后会根据添加顺序执行
+     串行队列指定到目标串行队列中后会根据添加顺序执行
+     */
+}
+
+
+
+
+
+
+
 
 
 - (void)demo1
@@ -220,7 +630,7 @@ dispatch_source_t WriteDataToFile(const char* filename)
         void* buffer = malloc(bufferSize);
         ssize_t a = write(fd, buffer, bufferSize);
         if (a == -1) {
-             NSLog(@"error: %s(errno: %d)",strerror(errno),errno);
+            NSLog(@"error: %s(errno: %d)",strerror(errno),errno);
         }
         free(buffer);
         dispatch_source_cancel(writeSource); // Cancel and release the dispatch source when done.
@@ -306,299 +716,6 @@ dispatch_queue_t createMyQueue() {
         dispatch_set_context(queue, name);
     });
 }
-
-/*
- Dispatch group 用来阻塞一个线程，直到一个或多个任务完成执行。
- */
-- (void)demo8
-{
-    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-    dispatch_group_t group = dispatch_group_create();
-    // 把 queue 加入到 group
-    dispatch_group_async(group, queue, ^{
-        // 一些异步操作任务
-        NSLog(@"group task one");
-    });
-    
-    dispatch_group_async(group, queue, ^{
-        NSLog(@"group task two");
-    });
-    
-    // code 你可以在这里写代码做一些不必等待 group 内任务的操作
-    
-    // 当你在 group 的任务没有完成的情况下不能做更多的事时，阻塞当前线程等待 group 完工
-//    dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
-//    NSLog(@"finish");
-    
-    dispatch_group_notify(group, queue, ^{
-        NSLog(@"notify group finish");
-    });
-}
-/*
- 并发编程中不可避免的碰到资源争夺问题，解决这类问题有三种方法：
- 
- 加锁 @synchronized(//要锁对象){相关操作}
- 使用异步执行串行队列的方式，这样可以控制对象的操作顺序
- 上面两种方法的确已经足够好了，但还不是最优的，它只可以实现单读、单写。
- 整体来看，我们最终要解决的问题是，在写的过程中不能被读，以免数据不对，但是读与读之间并没有任何的冲突
-
- dispatch_barrier ，没错使用它也可以做到这一点
- */
-- (void)demo9
-{
-    Person *person = [[Person alloc] init];
-    person.name = @"aaa";
-    dispatch_queue_t q = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-    dispatch_async(q, ^{
-        person.name = @"bbb";
-        NSLog(@"set");
-    });
-    
-    dispatch_async(q, ^{
-        NSLog(@"%@",person.name);
-        NSLog(@"%@",person.name);
-        NSLog(@"-----");
-    });
-    /* 会出现这种情况
-     2017-09-24 17:48:27.552048+0800 DMGCD[35984:7956077] -----
-     2017-09-24 17:48:27.710931+0800 DMGCD[35984:7956037] aaa
-     2017-09-24 17:48:27.711346+0800 DMGCD[35984:7956037] bbb
-     2017-09-24 17:48:27.711560+0800 DMGCD[35984:7956037] -----
-     */
-}
-
-/*
- dispatch_barrier_sync与dispatch_barrier_async
- 1、等待在它前面插入队列的任务先执行完
- 
- 2、等待他们自己的任务执行完再执行后面的任务
- 
- 不同点：
- 
- 1、dispatch_barrier_sync将自己的任务插入到队列的时候，需要等待自己的任务结束之后才会继续插入被写在它后面的任务，然后执行它们
- 
- 2、dispatch_barrier_async将自己的任务插入到队列之后，不会等待自己的任务结束，它会继续把后面的任务插入到队列，然后等待自己的任务结束后才执行后面任务。
- */
-- (void)demo10
-{
-    dispatch_queue_t concurrentQueue = dispatch_queue_create("my.concurrent.queue", DISPATCH_QUEUE_CONCURRENT);
-    dispatch_async(concurrentQueue, ^(){
-        sleep(5);
-        NSLog(@"dispatch-1");
-    });
-    dispatch_async(concurrentQueue, ^(){
-        sleep(1);
-        NSLog(@"dispatch-2");
-    });
-    dispatch_barrier_async(concurrentQueue, ^(){
-        NSLog(@"dispatch-barrier");
-    });
-    dispatch_async(concurrentQueue, ^(){
-        NSLog(@"dispatch-3");
-    });
-    dispatch_async(concurrentQueue, ^(){
-        NSLog(@"dispatch-4");
-    });
-}
-
-- (void)demo11
-{
-    dispatch_queue_t concurrentQueue = dispatch_queue_create("my.concurrent.queue", DISPATCH_QUEUE_SERIAL);
-    dispatch_group_t group = dispatch_group_create();
-    
-    for (int i = 0; i < 10; i++) {
-        dispatch_group_enter(group);
-        dispatch_async(concurrentQueue, ^{
-            NSLog(@"task = %tu",i);
-            sleep(i+1);
-            dispatch_group_leave(group);
-        });
-    }
-    
-    NSLog(@"outter");
-    
-    dispatch_group_notify(group, dispatch_get_main_queue(), ^{
-        NSLog(@"finished");
-    });
-    
-}
-
-//MARK: dispatch_set_target_queue
-//变更队列的执行优先级
-- (void)demo12
-{
-    //优先级变更的串行队列，初始是默认优先级
-    dispatch_queue_t serialQueue = dispatch_queue_create("com.leoliu.gcd.serial", DISPATCH_QUEUE_SERIAL);
-    
-    //优先级不变的串行队列（参照），初始是默认优先级
-    dispatch_queue_t defaultSerialQueue = dispatch_queue_create("com.leoliu.gcd.defaultserial", DISPATCH_QUEUE_SERIAL);
-    
-    //变更前
-    dispatch_async(serialQueue, ^{
-        NSLog(@"变更前 - 1");
-    });
-    
-    dispatch_async(defaultSerialQueue, ^{
-        NSLog(@"变更前 - 2");
-    });
-    
-    //获取优先级为后台优先级的全局队列
-    dispatch_queue_t globalQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
-    
-    //变更优先级
-    dispatch_set_target_queue(serialQueue, globalQueue);
-    
-    //变更后
-    dispatch_async(serialQueue, ^{
-        NSLog(@"变更后 - 1");
-    });
-    
-    dispatch_async(defaultSerialQueue, ^{
-        NSLog(@"变更后 - 2");
-    });
-    
-    /**
-     结果:
-      变更前 - 2
-      变更前 - 1
-      变更后 - 2
-      变更后 - 1
-     */
-}
-
-- (void)demo13
-{
-    dispatch_queue_t serialQueue1 = dispatch_queue_create("com.leoliu.gcd.serial1", DISPATCH_QUEUE_SERIAL);
-    dispatch_queue_t serialQueue2 = dispatch_queue_create("com.leoliu.gcd.serial2", DISPATCH_QUEUE_SERIAL);
-    dispatch_queue_t serialQueue3 = dispatch_queue_create("com.leoliu.gcd.serial3", DISPATCH_QUEUE_SERIAL);
-    dispatch_queue_t serialQueue4 = dispatch_queue_create("com.leoliu.gcd.serial4", DISPATCH_QUEUE_SERIAL);
-    dispatch_queue_t serialQueue5 = dispatch_queue_create("com.leoliu.gcd.serial5", DISPATCH_QUEUE_SERIAL);
-    
-    dispatch_async(serialQueue1, ^{
-        NSLog(@"变更前 - 1");
-    });
-    dispatch_async(serialQueue2, ^{
-        NSLog(@"变更前 - 2");
-    });
-    dispatch_async(serialQueue3, ^{
-        NSLog(@"变更前 - 3");
-    });
-    dispatch_async(serialQueue4, ^{
-        NSLog(@"变更前 - 4");
-    });
-    dispatch_async(serialQueue5, ^{
-        NSLog(@"变更前 - 5");
-    });
-    
-    
-    sleep(5);
-    
-    dispatch_queue_t targetQueue = dispatch_queue_create("com.leoliu.gcd.target", DISPATCH_QUEUE_SERIAL);
-    dispatch_set_target_queue(serialQueue2, targetQueue);
-    dispatch_set_target_queue(serialQueue1, targetQueue);
-    dispatch_set_target_queue(serialQueue3, targetQueue);
-    dispatch_set_target_queue(serialQueue4, targetQueue);
-    dispatch_set_target_queue(serialQueue5, targetQueue);
-    
-    dispatch_async(serialQueue1, ^{
-        NSLog(@"变更后 - 1");
-    });
-    dispatch_async(serialQueue2, ^{
-        NSLog(@"变更后 - 2");
-    });
-    dispatch_async(serialQueue3, ^{
-        NSLog(@"变更后 - 3");
-    });
-    dispatch_async(serialQueue4, ^{
-        NSLog(@"变更后 - 4");
-    });
-    dispatch_async(serialQueue5, ^{
-        NSLog(@"变更后 - 5");
-    });
-    
-    /**
-     结果：
-      变更前 - 3
-      变更前 - 2
-      变更前 - 4
-      变更前 - 1
-      变更前 - 5
-     
-      变更后 - 1
-      变更后 - 2
-      变更后 - 3
-      变更后 - 4
-      变更后 - 5
-     */
-}
-
-
-- (void)demo14
-{
-    dispatch_queue_t concurrentQueue1 = dispatch_queue_create("com.leoliu.gcd.concurrent1", DISPATCH_QUEUE_CONCURRENT);
-    dispatch_queue_t serialQueue2 = dispatch_queue_create("com.leoliu.gcd.serial2", DISPATCH_QUEUE_SERIAL);
-    dispatch_queue_t serialQueue3 = dispatch_queue_create("com.leoliu.gcd.serial3", DISPATCH_QUEUE_SERIAL);
-    dispatch_queue_t serialQueue4 = dispatch_queue_create("com.leoliu.gcd.serial4", DISPATCH_QUEUE_SERIAL);
-    dispatch_queue_t serialQueue5 = dispatch_queue_create("com.leoliu.gcd.serial5", DISPATCH_QUEUE_SERIAL);
-    
-    dispatch_queue_t targetQueue = dispatch_queue_create("com.leoliu.gcd.target", DISPATCH_QUEUE_SERIAL);
-    dispatch_set_target_queue(concurrentQueue1, targetQueue);
-    dispatch_set_target_queue(serialQueue3, targetQueue);
-    dispatch_set_target_queue(serialQueue2, targetQueue);
-    dispatch_set_target_queue(serialQueue4, targetQueue);
-    dispatch_set_target_queue(serialQueue5, targetQueue);
-    
-    dispatch_async(concurrentQueue1, ^{
-        NSLog(@"变更后 - 1-1");
-    });
-    
-    dispatch_async(concurrentQueue1, ^{
-        NSLog(@"变更后 - 1-3");
-    });
-   
-    dispatch_async(serialQueue2, ^{
-        sleep(2);
-        NSLog(@"变更后 - 2");
-    });
-    dispatch_async(concurrentQueue1, ^{
-        sleep(5);
-        NSLog(@"变更后 - 1-2");
-    });
-    dispatch_async(serialQueue3, ^{
-        NSLog(@"变更后 - 3");
-    });
-    dispatch_async(serialQueue4, ^{
-        NSLog(@"变更后 - 4");
-    });
-    dispatch_async(serialQueue5, ^{
-        NSLog(@"变更后 - 5");
-    });
-    
-   
-    
-    
-    /**
-     结果：
-     变更后 - 1-1
-     变更后 - 1-3
-     变更后 - 2
-     变更后 - 1-2
-     变更后 - 3
-     变更后 - 4
-     变更后 - 5
-     
-     结论：
-     并行队列指定到目标串行队列中后会根据添加顺序执行
-     串行队列指定到目标串行队列中后会根据添加顺序执行
-     */
-}
-
-
-
-
-
-
-
 
 
 

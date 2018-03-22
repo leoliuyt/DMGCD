@@ -15,40 +15,17 @@
 @implementation Person
 
 @synthesize name = _name;
-/*
- 串行队列
+
 - (instancetype)init
 {
     self = [super init];
-    self.queue = dispatch_queue_create("com.person.syncQueue", DISPATCH_QUEUE_SERIAL);
+    self.queue = dispatch_queue_create("com.person.concurrent", DISPATCH_QUEUE_CONCURRENT);
     return self;
 }
 
 - (void)setName:(NSString *)name
 {
-    dispatch_sync(self.queue, ^{
-        _name = [name copy];
-    });
-}
-
-- (NSString *)name{
-    __block NSString *tmpName;
-    dispatch_sync(self.queue, ^{
-        tmpName = _name;
-    });
-    return tmpName;
-}*/
-
-- (instancetype)init
-{
-    self = [super init];
-//    self.queue = dispatch_queue_create("com.person.syncQueue", DISPATCH_QUEUE_SERIAL);
-    self.queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-    return self;
-}
-
-- (void)setName:(NSString *)name
-{
+    // 保证同时'写'的的只有一个
     dispatch_barrier_async(self.queue, ^{
         _name = [name copy];
     });
@@ -56,6 +33,7 @@
 
 - (NSString *)name{
     __block NSString *tmpName;
+    // 任意线程都可以'读'
     dispatch_sync(self.queue, ^{
         tmpName = _name;
     });
