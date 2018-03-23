@@ -34,7 +34,7 @@ static NSInteger kPerValue = 1;
 //    [self demo2];
 //    [self demo4];
 //    [self demo9];
-    [self dispatch_semaphore_1];
+    [self dispatch_semaphore_3];
 }
 
 - (void)didReceiveMemoryWarning {
@@ -436,23 +436,11 @@ static NSInteger kPerValue = 1;
  没有耐心，给自己设定了一段等待时间，这段时间内等不到停车位就走了，如果等到了就开进去停车。而有些车主就像把车停在这，
  所以就一直等下去。
  */
+
+//保持线程同步，将异步操作转换为同步操作
 - (void)dispatch_semaphore_1
 {
-//    dispatch_group_t group = dispatch_group_create();
-//    dispatch_semaphore_t semaphore = dispatch_semaphore_create(10);
     dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-    
-//    for (int i = 0; i < 100; i++)
-//    {
-//        dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
-//        dispatch_group_async(group, queue, ^{
-//            NSLog(@"thread:%@==%i",[NSThread currentThread].name,i);
-//            sleep(2);
-//            dispatch_semaphore_signal(semaphore);
-//        });
-//    }
-//    dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
-    
     dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
 
     dispatch_async(queue, ^{
@@ -466,6 +454,64 @@ static NSInteger kPerValue = 1;
     NSLog(@"over");
 }
 
+//为线程加锁
+- (void)dispatch_semaphore_2
+{
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    dispatch_semaphore_t semaphore = dispatch_semaphore_create(1);
+    for (int i = 0; i < 100; i++) {
+        dispatch_async(queue, ^{
+            long semaphorecount = dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+            NSLog(@"i = %tu, count = %ld",i,semaphorecount);
+            dispatch_semaphore_signal(semaphore);
+        });
+    }
+    
+    /**
+     当线程1执行到dispatch_semaphore_wait这一行时，semaphore的信号量为1，所以使信号量-1变为0，并且线程1继续往下执行；如果当在线程1NSLog这一行代码还没执行完的时候，又有线程2来访问
+     执行dispatch_semaphore_wait时由于此时信号量为0，且时间为DISPATCH_TIME_FOREVER,所以会一直阻塞线程2（此时线程2处于等待状态），直到线程1执行完NSLog并执行
+     dispatch_semaphore_signal使信号量为1后，线程2才能解除阻塞继续住下执行。以上可以保证同时只有一个线程执行NSLog这一行代码。
+     */
+}
+
+//使用 Dispatch Semaphore 控制并发线程数量
+- (void)dispatch_semaphore_3
+{
+    dispatch_queue_t queue = dispatch_queue_create("com.limit.queue", DISPATCH_QUEUE_CONCURRENT);
+    for (int i = 0; i < 100; i++) {
+        dispatch_async_limit(queue, 5, ^{
+            sleep(5);
+            NSLog(@"%tu = %@",i,[NSThread currentThread]);
+        });
+    }
+}
+
+void dispatch_async_limit(dispatch_queue_t queue,NSUInteger limitSemaphoreCount, dispatch_block_t block) {
+    //控制并发数的信号量
+    static dispatch_semaphore_t limitSemaphore;
+    
+    //专门控制并发等待的线程
+    static dispatch_queue_t receiverQueue;
+    
+    //使用 dispatch_once而非 lazy 模式，防止可能的多线程抢占问题
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        limitSemaphore = dispatch_semaphore_create(limitSemaphoreCount);
+        receiverQueue = dispatch_queue_create("receiver", DISPATCH_QUEUE_SERIAL);
+    });
+    // 如不加 receiverQueue 放在主线程会阻塞主线程
+    dispatch_async(receiverQueue, ^{
+        //可用信号量后才能继续，否则等待
+        dispatch_semaphore_wait(limitSemaphore, DISPATCH_TIME_FOREVER);
+        dispatch_async(queue, ^{
+            !block ? : block();
+            //在该工作线程执行完成后释放信号量
+            dispatch_semaphore_signal(limitSemaphore);
+        });
+    });
+}
+
+//MARK: --------other
 
 - (void)demo1
 {
