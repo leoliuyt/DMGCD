@@ -30,11 +30,7 @@ static NSInteger kPerValue = 1;
 
 - (IBAction)startAction:(id)sender {
     ////https://developer.apple.com/library/content/documentation/General/Conceptual/ConcurrencyProgrammingGuide/GCDWorkQueues/GCDWorkQueues.html#//apple_ref/doc/uid/TP40008091-CH103-SW22
-//    [self demo1];
-//    [self demo2];
-//    [self demo4];
-//    [self demo9];
-    [self dispatch_semaphore_3];
+    [self dispatch_source_4];
 }
 
 - (void)didReceiveMemoryWarning {
@@ -405,6 +401,19 @@ static NSInteger kPerValue = 1;
      */
 }
 
+
+- (void)dispatch_set_target_4
+{
+    dispatch_queue_t queue = dispatch_queue_create("com.thread.queue", DISPATCH_QUEUE_CONCURRENT);
+    dispatch_set_target_queue(queue, dispatch_get_main_queue());
+    dispatch_async(queue, ^{
+        NSLog(@"开始请求");
+        sleep(5);
+        NSLog(@"得到请求结果:%@",[NSThread currentThread]);
+    });
+    
+    
+}
 //MARK: dispatch apply
 
 /**
@@ -513,7 +522,126 @@ void dispatch_async_limit(dispatch_queue_t queue,NSUInteger limitSemaphoreCount,
 
 //MARK: --------other
 
-- (void)demo1
+//MARK: dispatch source
+/**
+ 与Dispatch Queue不同的是，dispatch_source是可以进行取消的，而且可以添加取消的block回调；dispatch_source可以做异步读取文件映像、定时器、监听文件目录变化等等，具体请见下表：
+ 方法                                     说明
+ DISPATCH_SOURCE_TYPE_DATA_ADD          变量增加
+ DISPATCH_SOURCE_TYPE_DATA_OR           变量OR
+ DISPATCH_SOURCE_TYPE_MACH_SEND         Mach端口发送
+ DISPATCH_SOURCE_TYPE_MACH_RECV         Mach端口接收
+ DISPATCH_SOURCE_TYPE_MEMORYPRESSURE    内存情况
+ DISPATCH_SOURCE_TYPE_PROC              检测到与进程相关的事件
+ DISPATCH_SOURCE_TYPE_READ              可读取文件映像
+ DISPATCH_SOURCE_TYPE_SIGNAL            接收信号
+ DISPATCH_SOURCE_TYPE_TIMER             定时器
+ DISPATCH_SOURCE_TYPE_VNODE             文件系统有变更
+ DISPATCH_SOURCE_TYPE_WRITE             可写入文件映像
+ */
+//定时器
+- (void)dispatch_source_1
+{
+    self.progressView.progress = 1.0;
+    __block NSInteger timeout = 10;
+    dispatch_queue_t queue = dispatch_queue_create("com.yiqi.dmgcd", DISPATCH_QUEUE_SERIAL);
+    dispatch_source_t timerSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, queue);
+    dispatch_time_t time = dispatch_walltime(NULL, 0);
+//    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(<#delayInSeconds#> * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+//        <#code to be executed after a specified delay#>
+//    });
+    
+    dispatch_source_set_timer(timerSource, time, 1.0*NSEC_PER_SEC, 0);
+    
+    __weak typeof(self) weakSelf = self;
+    dispatch_source_set_event_handler(timerSource, ^{
+        if (timeout <= 0) {
+            dispatch_source_cancel(timerSource);
+            NSLog(@"cancel");
+        } else {
+            timeout--;
+            NSLog(@"timeout = %tu",timeout);
+            dispatch_async(dispatch_get_main_queue(), ^{
+                weakSelf.progressView.progress = timeout/10.;
+            });
+        }
+    });
+    
+    //开始执行
+    dispatch_resume(timerSource);
+}
+
+//文件系统
+- (void)dispatch_source_2
+{
+    //创建文件夹，写入文件，用来进行测试
+    NSString *cacheDirectory = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) firstObject];
+    NSString *directory = [NSString stringWithFormat:@"%@/test", cacheDirectory];
+    if(![[NSFileManager defaultManager] fileExistsAtPath:directory isDirectory:nil]) {
+        [[NSFileManager defaultManager] createDirectoryAtPath:directory withIntermediateDirectories:YES attributes:nil error:nil];
+    }
+
+    
+    NSURL *directoryURL = [NSURL URLWithString:directory]; // assume this is set to a directory
+    int const fd = open([[directoryURL path] fileSystemRepresentation], O_EVTONLY);
+    if (fd < 0) {
+        char buffer[80];
+        strerror_r(errno, buffer, sizeof(buffer));
+        NSLog(@"Unable to open \"%@\": %s (%d)", [directoryURL path], buffer, errno);
+        return;
+    }
+    //设置源监听文件夹的变化，其中监听的是写入、删除、更改名字
+    dispatch_source_t source = dispatch_source_create(DISPATCH_SOURCE_TYPE_VNODE, fd,
+                                                      DISPATCH_VNODE_WRITE | DISPATCH_VNODE_DELETE | DISPATCH_VNODE_RENAME, DISPATCH_TARGET_QUEUE_DEFAULT);
+    dispatch_source_set_event_handler(source, ^(){
+        //获取源变化的具体标志
+        unsigned long const data = dispatch_source_get_data(source);
+        if (data & DISPATCH_VNODE_WRITE) {
+            NSLog(@"The directory changed.");
+        }
+        if (data & DISPATCH_VNODE_DELETE) {
+            NSLog(@"The directory has been deleted.");
+        }
+    });
+    dispatch_source_set_cancel_handler(source, ^(){
+        NSLog(@"cancel");
+        close(fd);
+    });
+    dispatch_resume(source);
+    
+    NSError *error;
+//    [[NSFileManager defaultManager] removeItemAtPath:directory error:&error];
+//    if (error) {
+//        NSLog(@"error%@",error.localizedDescription);
+//    }
+    
+    NSString *filePath = [NSString stringWithFormat:@"%@/test.txt", directory];
+    if([[NSFileManager defaultManager] fileExistsAtPath:filePath]) {
+        [@"hello" writeToFile:filePath atomically:YES encoding:NSUTF8StringEncoding error:&error];
+        if (error) {
+            NSLog(@"error%@",error.localizedDescription);
+        }
+
+    }
+}
+
+//内存压力情况变化.
+- (void)dispatch_source_3
+{
+    dispatch_source_t source = dispatch_source_create(DISPATCH_SOURCE_TYPE_MEMORYPRESSURE, 0, DISPATCH_MEMORYPRESSURE_WARN|DISPATCH_MEMORYPRESSURE_CRITICAL, dispatch_get_main_queue());
+    dispatch_source_set_event_handler(source, ^{
+        dispatch_source_memorypressure_flags_t pressureLevel = dispatch_source_get_data(source);
+        if (pressureLevel & DISPATCH_MEMORYPRESSURE_WARN) {
+            NSLog(@"memeory warn");
+        }
+        
+        if (pressureLevel & DISPATCH_MEMORYPRESSURE_CRITICAL) {
+            NSLog(@"memeory critical");
+        }
+    });
+    dispatch_resume(source);
+}
+
+- (void)dispatch_source_4
 {
     dispatch_source_t source = dispatch_source_create(DISPATCH_SOURCE_TYPE_DATA_ADD, 0, 0, dispatch_get_main_queue());
     
@@ -551,35 +679,8 @@ void dispatch_async_limit(dispatch_queue_t queue,NSUInteger limitSemaphoreCount,
     }
 }
 
-- (void)demo2
-{
-    self.progressView.progress = 1.0;
-    __block NSInteger timeout = 10;
-    dispatch_queue_t queue = dispatch_queue_create("com.yiqi.dmgcd", DISPATCH_QUEUE_SERIAL);
-    dispatch_source_t timerSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, queue);
-    dispatch_time_t time = dispatch_walltime(NULL, 0);
-    dispatch_source_set_timer(timerSource, time, 1.0*NSEC_PER_SEC, 0);
-    
-    __weak typeof(self) weakSelf = self;
-    dispatch_source_set_event_handler(timerSource, ^{
-        if (timeout <= 0) {
-            dispatch_source_cancel(timerSource);
-            NSLog(@"cancel");
-        } else {
-            timeout--;
-            NSLog(@"timeout = %tu",timeout);
-            dispatch_async(dispatch_get_main_queue(), ^{
-                weakSelf.progressView.progress = timeout/10.;
-            });
-        }
-    });
-    
-    //开始执行
-    dispatch_resume(timerSource);
-}
-
-
-- (void)demo3
+//
+- (void)dispatch_source_5
 {
     dispatch_source_t source = dispatch_source_create(DISPATCH_SOURCE_TYPE_DATA_ADD, 0, 0, dispatch_get_main_queue());
     //在主线程繁忙的时候将操作联结起来，等主线程空闲时 刷新UI 避免频繁的在主线程刷新UI
