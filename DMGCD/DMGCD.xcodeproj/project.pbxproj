@@ -13,6 +13,10 @@
 		6B17D1971F67B2E80033EB2C /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6B17D1951F67B2E80033EB2C /* Main.storyboard */; };
 		6B17D1991F67B2E80033EB2C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6B17D1981F67B2E80033EB2C /* Assets.xcassets */; };
 		6B17D19C1F67B2E80033EB2C /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6B17D19A1F67B2E80033EB2C /* LaunchScreen.storyboard */; };
+		6B59F0032088765800D9FDE4 /* SerialCurrSynAsynViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 6B59F0022088765800D9FDE4 /* SerialCurrSynAsynViewController.m */; };
+		6B59F0062088766200D9FDE4 /* GCDViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 6B59F0052088766200D9FDE4 /* GCDViewController.m */; };
+		6B59F0092088766B00D9FDE4 /* ThreadViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 6B59F0082088766B00D9FDE4 /* ThreadViewController.m */; };
+		6B59F00C2088767C00D9FDE4 /* OperationViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 6B59F00B2088767C00D9FDE4 /* OperationViewController.m */; };
 		6BBD42241F67DA3000269312 /* aa.json in Resources */ = {isa = PBXBuildFile; fileRef = 6BBD42231F67DA3000269312 /* aa.json */; };
 		6BE09E0920638FCF0051D07F /* DMCache.m in Sources */ = {isa = PBXBuildFile; fileRef = 6BE09E0820638FCF0051D07F /* DMCache.m */; };
 		9E44B90E1F77B3C300DEFF79 /* Person.m in Sources */ = {isa = PBXBuildFile; fileRef = 9E44B90D1F77B3C200DEFF79 /* Person.m */; };
@@ -29,6 +33,14 @@
 		6B17D1981F67B2E80033EB2C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6B17D19B1F67B2E80033EB2C /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		6B17D19D1F67B2E80033EB2C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		6B59F0012088765800D9FDE4 /* SerialCurrSynAsynViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SerialCurrSynAsynViewController.h; sourceTree = "<group>"; };
+		6B59F0022088765800D9FDE4 /* SerialCurrSynAsynViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SerialCurrSynAsynViewController.m; sourceTree = "<group>"; };
+		6B59F0042088766200D9FDE4 /* GCDViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GCDViewController.h; sourceTree = "<group>"; };
+		6B59F0052088766200D9FDE4 /* GCDViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = GCDViewController.m; sourceTree = "<group>"; };
+		6B59F0072088766B00D9FDE4 /* ThreadViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ThreadViewController.h; sourceTree = "<group>"; };
+		6B59F0082088766B00D9FDE4 /* ThreadViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ThreadViewController.m; sourceTree = "<group>"; };
+		6B59F00A2088767C00D9FDE4 /* OperationViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = OperationViewController.h; sourceTree = "<group>"; };
+		6B59F00B2088767C00D9FDE4 /* OperationViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = OperationViewController.m; sourceTree = "<group>"; };
 		6BBD42231F67DA3000269312 /* aa.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = aa.json; sourceTree = "<group>"; };
 		6BE09E0720638FCF0051D07F /* DMCache.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DMCache.h; sourceTree = "<group>"; };
 		6BE09E0820638FCF0051D07F /* DMCache.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DMCache.m; sourceTree = "<group>"; };
@@ -70,6 +82,14 @@
 				6B17D1901F67B2E80033EB2C /* AppDelegate.m */,
 				6B17D1921F67B2E80033EB2C /* ViewController.h */,
 				6B17D1931F67B2E80033EB2C /* ViewController.m */,
+				6B59F0012088765800D9FDE4 /* SerialCurrSynAsynViewController.h */,
+				6B59F0022088765800D9FDE4 /* SerialCurrSynAsynViewController.m */,
+				6B59F0042088766200D9FDE4 /* GCDViewController.h */,
+				6B59F0052088766200D9FDE4 /* GCDViewController.m */,
+				6B59F0072088766B00D9FDE4 /* ThreadViewController.h */,
+				6B59F0082088766B00D9FDE4 /* ThreadViewController.m */,
+				6B59F00A2088767C00D9FDE4 /* OperationViewController.h */,
+				6B59F00B2088767C00D9FDE4 /* OperationViewController.m */,
 				9E44B90C1F77B3C200DEFF79 /* Person.h */,
 				9E44B90D1F77B3C200DEFF79 /* Person.m */,
 				6BE09E0720638FCF0051D07F /* DMCache.h */,
@@ -123,7 +143,8 @@
 				TargetAttributes = {
 					6B17D1881F67B2E80033EB2C = {
 						CreatedOnToolsVersion = 8.3.1;
-						ProvisioningStyle = Automatic;
+						DevelopmentTeam = XWNPFKK4U5;
+						ProvisioningStyle = Manual;
 					};
 				};
 			};
@@ -164,9 +185,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6B59F0092088766B00D9FDE4 /* ThreadViewController.m in Sources */,
+				6B59F00C2088767C00D9FDE4 /* OperationViewController.m in Sources */,
+				6B59F0032088765800D9FDE4 /* SerialCurrSynAsynViewController.m in Sources */,
 				6B17D1941F67B2E80033EB2C /* ViewController.m in Sources */,
 				6BE09E0920638FCF0051D07F /* DMCache.m in Sources */,
 				6B17D1911F67B2E80033EB2C /* AppDelegate.m in Sources */,
+				6B59F0062088766200D9FDE4 /* GCDViewController.m in Sources */,
 				9E44B90E1F77B3C300DEFF79 /* Person.m in Sources */,
 				6B17D18E1F67B2E80033EB2C /* main.m in Sources */,
 			);
@@ -290,10 +315,14 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Manual;
+				DEVELOPMENT_TEAM = XWNPFKK4U5;
 				INFOPLIST_FILE = DMGCD/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.yiqi.DMGCD;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE = "d2636a42-5de6-4cbd-b376-f4e11bee52f4";
+				PROVISIONING_PROFILE_SPECIFIER = all_20171024;
 			};
 			name = Debug;
 		};
@@ -301,10 +330,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Manual;
+				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = DMGCD/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.yiqi.DMGCD;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = Release;
 		};
