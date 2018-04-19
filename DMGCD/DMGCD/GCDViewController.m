@@ -32,6 +32,13 @@ static NSInteger kPerValue = 1;
 }
 
 
+- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
+{
+    [super touchesBegan:touches withEvent:event];
+    
+    [self dispatch_semaphore_3];
+}
+
 //MARK: dispatch barrier
 
 /**
@@ -149,25 +156,32 @@ static NSInteger kPerValue = 1;
 {
     dispatch_queue_t concurrentQueue = dispatch_queue_create("my.concurrent.queue", DISPATCH_QUEUE_CONCURRENT);
     dispatch_async(concurrentQueue, ^(){
-        sleep(5);
-        NSLog(@"dispatch-1");
+//        sleep(5);
+        NSLog(@"%@:dispatch-1",[NSThread currentThread]);
     });
     dispatch_async(concurrentQueue, ^(){
-        sleep(1);
-        NSLog(@"dispatch-2");
+//        sleep(1);
+        NSLog(@"%@:dispatch-2",[NSThread currentThread]);
     });
-    //    dispatch_barrier_async(concurrentQueue, ^(){
-    //        NSLog(@"dispatch-barrier");
-    //    });
-    dispatch_barrier_sync(concurrentQueue, ^(){
-        NSLog(@"dispatch-barrier");
+    dispatch_barrier_sync(concurrentQueue, ^(){//不会创建线程
+        NSLog(@"%@:dispatch-barrier",[NSThread currentThread]);
     });
     dispatch_async(concurrentQueue, ^(){
-        NSLog(@"dispatch-3");
+        NSLog(@"%@:dispatch-3",[NSThread currentThread]);
     });
     dispatch_async(concurrentQueue, ^(){
-        NSLog(@"dispatch-4");
+        NSLog(@"%@:dispatch-4",[NSThread currentThread]);
     });
+    NSLog(@"over-main");
+    
+    /**
+     <NSThread: 0x174076400>{number = 3, name = (null)}:dispatch-1
+     <NSThread: 0x174076400>{number = 3, name = (null)}:dispatch-2
+     <NSThread: 0x17006e000>{number = 1, name = main}:dispatch-barrier
+     over-main
+     <NSThread: 0x17007de40>{number = 7, name = (null)}:dispatch-3
+     <NSThread: 0x17007de40>{number = 7, name = (null)}:dispatch-4
+     */
 }
 
 
@@ -182,22 +196,29 @@ static NSInteger kPerValue = 1;
     // 把 queue 加入到 group
     dispatch_group_async(group, queue, ^{
         // 一些异步操作任务
-        NSLog(@"group task one");
+        sleep(5);
+        NSLog(@"%@:group task one",[NSThread currentThread]);
     });
     
     dispatch_group_async(group, queue, ^{
-        NSLog(@"group task two");
+        NSLog(@"%@:group task two",[NSThread currentThread]);
     });
     
     // code 你可以在这里写代码做一些不必等待 group 内任务的操作
-    NSLog(@"outer");
+    NSLog(@"%@:outer",[NSThread currentThread]);
     // 当你在 group 的任务没有完成的情况下不能做更多的事时，阻塞当前线程等待 group 完工
-    dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
-    NSLog(@"finish");
+//    dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
+//    NSLog(@"finish");
     
-    //    dispatch_group_notify(group, queue, ^{
-    //        NSLog(@"notify group finish");
-    //    });
+        dispatch_group_notify(group, queue, ^{
+            NSLog(@"%@:notify group finish",[NSThread currentThread]);
+        });
+    /**
+     2018-04-19 17:17:22.706349+0800 DMGCD[349:54561] outer
+     2018-04-19 17:17:22.710449+0800 DMGCD[349:54592] group task two
+     2018-04-19 17:17:27.715335+0800 DMGCD[349:54590] group task one
+     2018-04-19 17:17:27.715601+0800 DMGCD[349:54561] finish
+     */
 }
 
 - (void)dispatch_group_2
@@ -208,8 +229,10 @@ static NSInteger kPerValue = 1;
     for (int i = 0; i < 10; i++) {
         dispatch_group_enter(group);
         dispatch_async(concurrentQueue, ^{
-            NSLog(@"task = %tu",i);
-            sleep(i+1);
+            if (i == 5) {
+                sleep(i+1);
+            }
+            NSLog(@"%@:task = %tu",[NSThread currentThread],i);
             dispatch_group_leave(group);
         });
     }
@@ -219,6 +242,21 @@ static NSInteger kPerValue = 1;
     dispatch_group_notify(group, dispatch_get_main_queue(), ^{
         NSLog(@"finished");
     });
+    
+    /**
+      outter
+      <NSThread: 0x17026ce80>{number = 4, name = (null)}:task = 0
+      <NSThread: 0x17026ce80>{number = 4, name = (null)}:task = 1
+      <NSThread: 0x17026ce80>{number = 4, name = (null)}:task = 2
+      <NSThread: 0x17026ce80>{number = 4, name = (null)}:task = 3
+      <NSThread: 0x17026ce80>{number = 4, name = (null)}:task = 4
+      <NSThread: 0x17026ce80>{number = 4, name = (null)}:task = 5
+      <NSThread: 0x17026ce80>{number = 4, name = (null)}:task = 6
+      <NSThread: 0x17026ce80>{number = 4, name = (null)}:task = 7
+      <NSThread: 0x17026ce80>{number = 4, name = (null)}:task = 8
+      <NSThread: 0x17026ce80>{number = 4, name = (null)}:task = 9
+      finished
+     */
     
 }
 
@@ -417,13 +455,26 @@ static NSInteger kPerValue = 1;
     dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
     
     NSArray *arr = @[@"a",@"b",@"c",@"d",@"e",@"f",@"g",@"h",@"i",@"j"];
-    dispatch_async(queue, ^{
+//    dispatch_async(queue, ^{
         dispatch_apply(arr.count, queue, ^(size_t i) {
-            NSLog(@"%@",[arr objectAtIndex:i]);
+            NSLog(@"%@:%@",[arr objectAtIndex:i],[NSThread currentThread]);
         });
         NSLog(@"--over");
-    });
-    NSLog(@"over");
+//    });
+//    NSLog(@"over");
+    /**
+      a:<NSThread: 0x170067580>{number = 1, name = main}
+      b:<NSThread: 0x170067580>{number = 1, name = main}
+      c:<NSThread: 0x170067580>{number = 1, name = main}
+      d:<NSThread: 0x170067580>{number = 1, name = main}
+      e:<NSThread: 0x170067580>{number = 1, name = main}
+      f:<NSThread: 0x170067580>{number = 1, name = main}
+      g:<NSThread: 0x170067580>{number = 1, name = main}
+      h:<NSThread: 0x170067580>{number = 1, name = main}
+      i:<NSThread: 0x170067580>{number = 1, name = main}
+      j:<NSThread: 0x170067580>{number = 1, name = main}
+      --over
+     */
 }
 
 //MARK: dispatch semaphore
@@ -454,6 +505,11 @@ static NSInteger kPerValue = 1;
     
     dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
     NSLog(@"over");
+    /**
+      DMGCD[388:60678] 请求中……
+      DMGCD[388:60678] 请求回调中……
+      DMGCD[388:60602] over
+     */
 }
 
 //为线程加锁
@@ -480,9 +536,8 @@ static NSInteger kPerValue = 1;
 - (void)dispatch_semaphore_3
 {
     dispatch_queue_t queue = dispatch_queue_create("com.limit.queue", DISPATCH_QUEUE_CONCURRENT);
-    for (int i = 0; i < 100; i++) {
+    for (int i = 0; i < 1000; i++) {
         dispatch_async_limit(queue, 5, ^{
-            sleep(5);
             NSLog(@"%tu = %@",i,[NSThread currentThread]);
         });
     }

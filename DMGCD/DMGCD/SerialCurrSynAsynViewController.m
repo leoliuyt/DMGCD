@@ -85,7 +85,7 @@
 //MARK: 并行同步、异步
 - (void)demo3
 {
-    dispatch_queue_t q = dispatch_queue_create("curren", DISPATCH_CURRENT_QUEUE_LABEL);
+    dispatch_queue_t q = dispatch_queue_create("curren", DISPATCH_QUEUE_CONCURRENT);
     for (int i = 0; i < 1000; i++) {
         dispatch_sync(q, ^{
             NSLog(@"%@ %d", [NSThread currentThread], i);
@@ -95,13 +95,17 @@
     
     /**
      同步操作不创建线程，在当前线程中顺序执行
+      <NSThread: 0x174079800>{number = 1, name = main} 997
+      <NSThread: 0x174079800>{number = 1, name = main} 998
+      <NSThread: 0x174079800>{number = 1, name = main} 999
+      over-main
      */
 }
 
 - (void)demo4
 {
-//    dispatch_queue_t q = dispatch_queue_create("curren", DISPATCH_CURRENT_QUEUE_LABEL);
-    dispatch_queue_t q = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    dispatch_queue_t q = dispatch_queue_create("curren", DISPATCH_QUEUE_CONCURRENT);
+//    dispatch_queue_t q = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
     for (int i = 0; i < 1000; i++) {
         dispatch_async(q, ^{
             NSLog(@"%@ %d", [NSThread currentThread], i);
@@ -109,7 +113,7 @@
     }
     NSLog(@"over-main");
     /**
-     开很多线程，无序执行（实验发现 自己手动创建的并发队列，只创建了一条线程）
+     开很多线程，无序执行
      */
 }
 
