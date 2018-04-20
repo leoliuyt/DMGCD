@@ -36,7 +36,7 @@ static NSInteger kPerValue = 1;
 {
     [super touchesBegan:touches withEvent:event];
     
-    [self dispatch_semaphore_3];
+    [self dispatch_source_6];
 }
 
 //MARK: dispatch barrier
@@ -455,12 +455,12 @@ static NSInteger kPerValue = 1;
     dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
     
     NSArray *arr = @[@"a",@"b",@"c",@"d",@"e",@"f",@"g",@"h",@"i",@"j"];
-//    dispatch_async(queue, ^{
+    dispatch_async(queue, ^{
         dispatch_apply(arr.count, queue, ^(size_t i) {
             NSLog(@"%@:%@",[arr objectAtIndex:i],[NSThread currentThread]);
         });
         NSLog(@"--over");
-//    });
+    });
 //    NSLog(@"over");
     /**
       a:<NSThread: 0x170067580>{number = 1, name = main}
@@ -689,6 +689,8 @@ void dispatch_async_limit(dispatch_queue_t queue,NSUInteger limitSemaphoreCount,
     dispatch_resume(source);
 }
 
+
+//自定义时间只能使用DISPATCH_SOURCE_TYPE_DATA_ADD 或者DISPATCH_SOURCE_TYPE_DATA_OR
 - (void)dispatch_source_4
 {
     dispatch_source_t source = dispatch_source_create(DISPATCH_SOURCE_TYPE_DATA_ADD, 0, 0, dispatch_get_main_queue());
@@ -766,6 +768,20 @@ void dispatch_async_limit(dispatch_queue_t queue,NSUInteger limitSemaphoreCount,
     
     //开始执行
     dispatch_resume(timerSource);
+}
+
+- (void)dispatch_source_6
+{
+    dispatch_source_t source = dispatch_source_create(DISPATCH_SOURCE_TYPE_DATA_OR, 0, 0, dispatch_get_main_queue());
+    dispatch_source_set_event_handler(source, ^{
+         NSLog(@"监听函数：%lu",dispatch_source_get_data(source));
+    });
+    dispatch_resume(source);
+    
+    for (int i = 1; i < 5 ; i++) {
+        dispatch_source_merge_data(source, i);
+        usleep(2000);
+    }
 }
 
 - (void)demo4
@@ -918,7 +934,7 @@ dispatch_queue_t createMyQueue() {
 {
     // 通过自定义函数创建队列
     dispatch_queue_t queue = createMyQueue();
-    
+
     // 异步执行队列，并在队列中修改上下文
     dispatch_async(queue, ^{
         char *name = dispatch_get_context(queue);

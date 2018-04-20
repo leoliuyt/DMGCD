@@ -27,6 +27,86 @@
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
 {
     [super touchesBegan:touches withEvent:event];
+    [self demo3];
+//    dispatch_async(dispatch_get_global_queue(0, 0), ^{
+//        [self demo1];
+//    });
+}
+
+- (void)demo1
+{
+    NSInvocationOperation *invocation = [[NSInvocationOperation alloc] initWithTarget:self selector:@selector(invokeAction:) object:nil];
+    [invocation start];
+}
+
+- (void)demo2
+{
+    __weak typeof(self) weakSelf = self;
+    NSBlockOperation *op = [NSBlockOperation blockOperationWithBlock:^{
+        [weakSelf invokeAction:nil];
+    }];
+    [op start];
+}
+
+- (void)demo3
+{
+    NSBlockOperation *op = [NSBlockOperation blockOperationWithBlock:^{
+        for (int i = 0; i < 2; i++) {
+            [NSThread sleepForTimeInterval:2]; // 模拟耗时操作
+            NSLog(@"1-1=%@",[NSThread currentThread]);
+        }
+    }];
+    
+    [op addExecutionBlock:^{
+        for (int i = 0; i < 2; i++) {
+            [NSThread sleepForTimeInterval:2]; // 模拟耗时操作
+            NSLog(@"1=%@",[NSThread currentThread]);
+        }
+    }];
+    
+    [op addExecutionBlock:^{
+        for (int i = 0; i < 2; i++) {
+            [NSThread sleepForTimeInterval:2]; // 模拟耗时操作
+            NSLog(@"2=%@",[NSThread currentThread]);
+        }
+    }];
+    
+    [op addExecutionBlock:^{
+        for (int i = 0; i < 2; i++) {
+            [NSThread sleepForTimeInterval:2]; // 模拟耗时操作
+            NSLog(@"3=%@",[NSThread currentThread]);
+        }
+    }];
+    
+    [op addExecutionBlock:^{
+        for (int i = 0; i < 2; i++) {
+            [NSThread sleepForTimeInterval:2]; // 模拟耗时操作
+            NSLog(@"4=%@",[NSThread currentThread]);
+        }
+    }];
+    
+    [op addExecutionBlock:^{
+        for (int i = 0; i < 2; i++) {
+            [NSThread sleepForTimeInterval:2]; // 模拟耗时操作
+            NSLog(@"5=%@",[NSThread currentThread]);
+        }
+    }];
+    
+    [op addExecutionBlock:^{
+        for (int i = 0; i < 2; i++) {
+            NSLog(@"6=%@",[NSThread currentThread]);
+            [NSThread sleepForTimeInterval:2]; // 模拟耗时操作
+        }
+    }];
+    [op start];
+}
+
+- (void)invokeAction:(id)sender
+{
+    for (int i = 0; i < 2; i++) {
+        [NSThread sleepForTimeInterval:2]; // 模拟耗时操作
+        NSLog(@"block- %@",[NSThread currentThread]);
+    }
 }
 
 @end
