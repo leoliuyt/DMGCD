@@ -7,6 +7,7 @@
 //
 
 #import "OperationViewController.h"
+#import "DMOperation.h"
 
 @interface OperationViewController ()
 
@@ -27,7 +28,7 @@
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
 {
     [super touchesBegan:touches withEvent:event];
-    [self demo3];
+    [self demo4];
 //    dispatch_async(dispatch_get_global_queue(0, 0), ^{
 //        [self demo1];
 //    });
@@ -109,4 +110,16 @@
     }
 }
 
+
+- (void)demo4
+{
+    NSOperationQueue *q = [[NSOperationQueue alloc] init];
+    q.maxConcurrentOperationCount = 1;
+    DMOperation *op1 = [[DMOperation alloc] init];
+    DMOperation *op2 = [[DMOperation alloc] init];
+    DMOperation *op3 = [[DMOperation alloc] init];
+    [q addOperation: op1];
+    [q addOperation: op2];
+    [q addOperation: op3];
+}
 @end

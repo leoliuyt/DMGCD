@@ -19,6 +19,7 @@
 		6B59F00C2088767C00D9FDE4 /* OperationViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 6B59F00B2088767C00D9FDE4 /* OperationViewController.m */; };
 		6BBD42241F67DA3000269312 /* aa.json in Resources */ = {isa = PBXBuildFile; fileRef = 6BBD42231F67DA3000269312 /* aa.json */; };
 		6BE09E0920638FCF0051D07F /* DMCache.m in Sources */ = {isa = PBXBuildFile; fileRef = 6BE09E0820638FCF0051D07F /* DMCache.m */; };
+		9E3F4C2E208AEC8B009FCBB2 /* DMOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 9E3F4C2D208AEC8B009FCBB2 /* DMOperation.m */; };
 		9E44B90E1F77B3C300DEFF79 /* Person.m in Sources */ = {isa = PBXBuildFile; fileRef = 9E44B90D1F77B3C200DEFF79 /* Person.m */; };
 /* End PBXBuildFile section */
 
@@ -44,6 +45,8 @@
 		6BBD42231F67DA3000269312 /* aa.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = aa.json; sourceTree = "<group>"; };
 		6BE09E0720638FCF0051D07F /* DMCache.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DMCache.h; sourceTree = "<group>"; };
 		6BE09E0820638FCF0051D07F /* DMCache.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DMCache.m; sourceTree = "<group>"; };
+		9E3F4C2C208AEC8B009FCBB2 /* DMOperation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DMOperation.h; sourceTree = "<group>"; };
+		9E3F4C2D208AEC8B009FCBB2 /* DMOperation.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DMOperation.m; sourceTree = "<group>"; };
 		9E44B90C1F77B3C200DEFF79 /* Person.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Person.h; sourceTree = "<group>"; };
 		9E44B90D1F77B3C200DEFF79 /* Person.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Person.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -90,6 +93,8 @@
 				6B59F0082088766B00D9FDE4 /* ThreadViewController.m */,
 				6B59F00A2088767C00D9FDE4 /* OperationViewController.h */,
 				6B59F00B2088767C00D9FDE4 /* OperationViewController.m */,
+				9E3F4C2C208AEC8B009FCBB2 /* DMOperation.h */,
+				9E3F4C2D208AEC8B009FCBB2 /* DMOperation.m */,
 				9E44B90C1F77B3C200DEFF79 /* Person.h */,
 				9E44B90D1F77B3C200DEFF79 /* Person.m */,
 				6BE09E0720638FCF0051D07F /* DMCache.h */,
@@ -189,6 +194,7 @@
 				6B59F00C2088767C00D9FDE4 /* OperationViewController.m in Sources */,
 				6B59F0032088765800D9FDE4 /* SerialCurrSynAsynViewController.m in Sources */,
 				6B17D1941F67B2E80033EB2C /* ViewController.m in Sources */,
+				9E3F4C2E208AEC8B009FCBB2 /* DMOperation.m in Sources */,
 				6BE09E0920638FCF0051D07F /* DMCache.m in Sources */,
 				6B17D1911F67B2E80033EB2C /* AppDelegate.m in Sources */,
 				6B59F0062088766200D9FDE4 /* GCDViewController.m in Sources */,
