@@ -18,7 +18,16 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    // Do any additional setup after loading the view, typically from a nib.
+    dispatch_queue_t q = dispatch_queue_create("aaa", DISPATCH_QUEUE_SERIAL);
+    
+    dispatch_queue_t qq = dispatch_queue_create("aaa", DISPATCH_QUEUE_SERIAL);
+    
+    if (q == qq) {
+        NSLog(@"相等");
+    } else {
+        NSLog(@"不等");
+    }
+    //不等
 }
 
 - (void)didReceiveMemoryWarning {
