@@ -122,4 +122,9 @@
     [q addOperation: op2];
     [q addOperation: op3];
 }
+
+- (void)demo5
+{
+    NSURLSession *aa = [NSURLSession sharedSession];
+}
 @end

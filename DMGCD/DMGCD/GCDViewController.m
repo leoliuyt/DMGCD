@@ -36,7 +36,8 @@ static NSInteger kPerValue = 1;
 {
     [super touchesBegan:touches withEvent:event];
     
-    [self dispatch_source_6];
+//    [self dispatch_source_6];
+    [self dispatch_source_5];
 }
 
 //MARK: dispatch barrier
@@ -223,7 +224,7 @@ static NSInteger kPerValue = 1;
 
 - (void)dispatch_group_2
 {
-    dispatch_queue_t concurrentQueue = dispatch_queue_create("my.concurrent.queue", DISPATCH_QUEUE_SERIAL);
+    dispatch_queue_t concurrentQueue = dispatch_queue_create("my.concurrent.queue", DISPATCH_QUEUE_CONCURRENT);
     dispatch_group_t group = dispatch_group_create();
     
     for (int i = 0; i < 10; i++) {
@@ -243,21 +244,23 @@ static NSInteger kPerValue = 1;
         NSLog(@"finished");
     });
     
-    /**
-      outter
-      <NSThread: 0x17026ce80>{number = 4, name = (null)}:task = 0
-      <NSThread: 0x17026ce80>{number = 4, name = (null)}:task = 1
-      <NSThread: 0x17026ce80>{number = 4, name = (null)}:task = 2
-      <NSThread: 0x17026ce80>{number = 4, name = (null)}:task = 3
-      <NSThread: 0x17026ce80>{number = 4, name = (null)}:task = 4
-      <NSThread: 0x17026ce80>{number = 4, name = (null)}:task = 5
-      <NSThread: 0x17026ce80>{number = 4, name = (null)}:task = 6
-      <NSThread: 0x17026ce80>{number = 4, name = (null)}:task = 7
-      <NSThread: 0x17026ce80>{number = 4, name = (null)}:task = 8
-      <NSThread: 0x17026ce80>{number = 4, name = (null)}:task = 9
-      finished
-     */
+    NSLog(@"outter2");
     
+    /**
+     2018-06-07 10:53:00.166161+0800  outter
+     2018-06-07 10:53:00.166298+0800  <NSThread: 0x604000473880>{number = 3, name = (null)}:task = 0
+     2018-06-07 10:53:00.166317+0800  <NSThread: 0x604000465000>{number = 13, name = (null)}:task = 1
+     2018-06-07 10:53:00.166507+0800  <NSThread: 0x604000274340>{number = 14, name = (null)}:task = 2
+     2018-06-07 10:53:00.166541+0800  <NSThread: 0x604000275880>{number = 15, name = (null)}:task = 3
+     2018-06-07 10:53:00.166688+0800  <NSThread: 0x600000466a40>{number = 16, name = (null)}:task = 4
+     2018-06-07 10:53:00.166929+0800  <NSThread: 0x600000473840>{number = 17, name = (null)}:task = 6
+     2018-06-07 10:53:00.166974+0800  <NSThread: 0x60400027a580>{number = 18, name = (null)}:task = 7
+     2018-06-07 10:53:00.167089+0800  <NSThread: 0x600000467980>{number = 19, name = (null)}:task = 8
+     2018-06-07 10:53:00.167136+0800  <NSThread: 0x604000279dc0>{number = 20, name = (null)}:task = 9
+     2018-06-07 10:53:00.167332+0800  outter2
+     2018-06-07 10:53:06.170275+0800  <NSThread: 0x60000047ad80>{number = 21, name = (null)}:task = 5
+     2018-06-07 10:53:06.170588+0800  finished
+     */
 }
 
 //MARK: dispatch_set_target_queue
@@ -709,7 +712,7 @@ void dispatch_async_limit(dispatch_queue_t queue,NSUInteger limitSemaphoreCount,
         
         NSLog(@"进度：%@", @((CGFloat)totalComplete/(kMaxIndex * kPerValue)));
         
-        CGFloat progress = totalComplete / (kMaxIndex * kPerValue);
+        CGFloat progress = (CGFloat)totalComplete / (kMaxIndex * kPerValue);
         
         self.progressView.progress = progress;
         
@@ -718,13 +721,13 @@ void dispatch_async_limit(dispatch_queue_t queue,NSUInteger limitSemaphoreCount,
     
     dispatch_resume(source);
     
-    dispatch_queue_t globalQ = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    dispatch_queue_t globalQ = dispatch_queue_create("serial", DISPATCH_QUEUE_SERIAL);
     
     for (NSUInteger index = 0; index < kMaxIndex; index++) {
         dispatch_async(globalQ, ^{
+             sleep(1);//1秒
             dispatch_source_merge_data(source, kPerValue);
             NSLog(@"线程号：%@~~~~~~~~~~~~i = %ld", [NSThread currentThread], index);
-            usleep(2000000);//0.02秒
         });
     }
 }

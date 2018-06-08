@@ -6,6 +6,7 @@
     <dependencies>
         <deployment identifier="iOS"/>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="14088"/>
+        <capability name="Constraints to layout margins" minToolsVersion="6.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
@@ -78,13 +79,26 @@
                     <view key="view" contentMode="scaleToFill" id="3Un-1X-fxw">
                         <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <progressView opaque="NO" contentMode="scaleToFill" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="SIc-5b-cHQ">
+                                <rect key="frame" x="34" y="136" width="307" height="2"/>
+                            </progressView>
+                        </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                        <constraints>
+                            <constraint firstItem="SIc-5b-cHQ" firstAttribute="top" secondItem="vOO-SZ-Fxd" secondAttribute="bottom" constant="72" id="eHj-fi-7fZ"/>
+                            <constraint firstItem="SIc-5b-cHQ" firstAttribute="leading" secondItem="3Un-1X-fxw" secondAttribute="leadingMargin" constant="18" id="m5K-9E-Rvq"/>
+                            <constraint firstAttribute="trailingMargin" secondItem="SIc-5b-cHQ" secondAttribute="trailing" constant="18" id="rBM-3x-Hma"/>
+                        </constraints>
                     </view>
                     <navigationItem key="navigationItem" id="AAG-4k-g3D"/>
+                    <connections>
+                        <outlet property="progressView" destination="SIc-5b-cHQ" id="Y84-ki-rpA"/>
+                    </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="Gv3-FG-aZI" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="1919" y="123"/>
+            <point key="canvasLocation" x="1917.5999999999999" y="122.78860569715144"/>
         </scene>
         <!--Thread View Controller-->
         <scene sceneID="7hQ-IE-AmV">
